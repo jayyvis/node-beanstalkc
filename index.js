@@ -1,6 +1,5 @@
 
 var net = require('net');
-var slice = Array.prototype.slice;
 
 
 var Client = {
@@ -43,41 +42,40 @@ var Client = {
  */
 function Connection(stream) {
 	this.stream = stream;
-	this.buffer = '';
+	this.data = '';
 	this.handlers = [];
 	
 	var self = this;
 	self.stream.on('data', function(data) {
-		self.buffer += data;
+		self.data += data;
 		
-		while(self.buffer.length && self._tryToRespond());
+		while(self.data.length && self._tryToRespond());
 	});
 };
 
 Connection.prototype._tryToRespond = function() {
 	var handler = this.handlers[0];
 	
-	var response_handler = handler[0];
+	var response = handler[0];
 	var callback = handler[1];
 	
-	response_handler.handle(this.buffer);
+	response.parse(this.data);
 	
-	if (response_handler.complete) {
-		this.buffer = this.buffer.substr(response_handler.consumed_data_length);
+	if (response.complete) {
+		this.data = this.data.substr(response.consumed_data_length);
 		this.handlers.shift();
 		
-		if (response_handler.success) {
-			callback.apply(null, [false].concat(response_handler.args));
+		if (response.success) {
+			callback.apply(null, [false].concat(response.args));
 		} else {
-			callback.call(null, response_handler.args[0]);
+			callback.call(null, response.args[0]);
 		}
 	}
 	
-	return response_handler.complete;
+	return response.complete;
 };
 
-Connection.prototype.send = function() {
-	var args = slice.call(arguments);
+Connection.prototype.send = function(args) {
 	var packet = args.join(' ') + '\r\n';
 	this.stream.write(packet);
 };
@@ -111,25 +109,22 @@ Connection.prototype.stats = makeCommandMethod('stats', 'OK');
 
 function makeCommandMethod(command_name, expected_response, sends_data) {
 	return function() {
-		var callback = arguments[arguments.length - 1];
-		var args = slice.call(arguments, 0, arguments.length - 1);
+		var args = Array.prototype.slice.call(arguments);
+		var callback = args.pop();
 		
 		args.unshift(command_name);
 		
-		var data;
-		
 		if (sends_data) {
-			data = args.pop();
+			//first send header with length of data in bytes. then send data.
+			var data = args.pop();
 			args.push(Buffer.byteLength(data, 'utf8'));
+			this.send(args);
+			this.send([data])
+		} else {
+			this.send(args);
 		}
 		
-		this.send.apply(this, args);
-		
-		if (data) {
-			this.send(data)
-		}
-		
-		var handler = [new ResponseHandler(expected_response), callback];
+		var handler = [new Response(expected_response), callback];
 		
 		return this.handlers.push(handler);
 	};
@@ -140,11 +135,11 @@ function makeCommandMethod(command_name, expected_response, sends_data) {
 /**
  * Response handler
  */
-function ResponseHandler(success_code) {
+function Response(success_code) {
 	this.success_code = success_code;
 };
 
-ResponseHandler.prototype.reset = function() {
+Response.prototype.reset = function() {
 	this.complete = false;
 	this.success = false;
 	this.args = undefined;
@@ -153,11 +148,11 @@ ResponseHandler.prototype.reset = function() {
 	this.consumed_data_length = 0;
 };
 
-ResponseHandler.prototype.CODES_REQUIRING_BODY = {
+Response.prototype.CODES_REQUIRING_BODY = {
 	'RESERVED' : true
 };
 
-ResponseHandler.prototype.handle = function(data) {
+Response.prototype.parse = function(data) {
 	this.reset();
 	
 	var i = data.indexOf('\r\n');
@@ -192,11 +187,7 @@ ResponseHandler.prototype.handle = function(data) {
 	}
 };
 
-ResponseHandler.prototype.parseBody = function(data) {
-	if (! hasValue(data)) {
-		return;
-	}
-	
+Response.prototype.parseBody = function(data) {
 	var last_arg = this.args[this.args.length - 1];
 
 	var expected_bodylength_inbytes = parseInt(last_arg, 10);
@@ -212,13 +203,6 @@ ResponseHandler.prototype.parseBody = function(data) {
 		return true;
 	}
 };
-
-/**
- * helpers
- */
-function hasValue(v) {
-	return (typeof v !== 'undefined' && v !== null);
-}
 
 
 /**
