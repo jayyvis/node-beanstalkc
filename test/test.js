@@ -10,7 +10,7 @@ var job_data = {
 locals = {};
 
 
-describe('beanstalkc', function() {
+describe('beanstalkc:', function() {
 	before('connect()', function(done) {
 		client.connect('127.0.0.1:4242', function(err, conn) {
 			assert(!err, 'err:'+err);
@@ -53,7 +53,7 @@ describe('beanstalkc', function() {
 		});
 	});
 	
-	describe('utf8 string:', function() {
+	describe('utf8 jobs:', function() {
 		it('puts utf8 string', function(done) {
 			connection.put(0, 0, 1, 'latin À', function(err, job_id) {
 				assert(!err, 'err:'+err);
@@ -75,6 +75,37 @@ describe('beanstalkc', function() {
 			});
 		});
 	})
+	
+	describe('parallel jobs:', function() {
+		it('puts 3 jobs parallely', function(done) {
+			var count = 0;
+			
+			connection.put(0, 0, 1, 'job1', function(err, job_id) {
+				assert(!err, 'err:'+err);
+				assert(job_id);
+				
+				count += 1;
+				if (count === 3) done();
+			});
+			
+			connection.put(0, 0, 1, 'job2', function(err, job_id) {
+				assert(!err, 'err:'+err);
+				assert(job_id);
+				
+				count += 1;
+				if (count === 3) done();
+			});
+
+			connection.put(0, 0, 1, 'job3', function(err, job_id) {
+				assert(!err, 'err:'+err);
+				assert(job_id);
+
+				count += 1;
+				if (count === 3) done();
+			});
+		});
+	})
+	
 })
 
 

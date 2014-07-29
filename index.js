@@ -49,7 +49,8 @@ function Connection(stream) {
 	var self = this;
 	self.stream.on('data', function(data) {
 		self.buffer += data;
-		self._tryToRespond();
+		
+		while(self.buffer.length && self._tryToRespond());
 	});
 };
 
@@ -62,7 +63,7 @@ Connection.prototype._tryToRespond = function() {
 	response_handler.handle(this.buffer);
 	
 	if (response_handler.complete) {
-		this.buffer = '';
+		this.buffer = this.buffer.substr(response_handler.consumed_data_length);
 		this.handlers.shift();
 		
 		if (response_handler.success) {
@@ -70,9 +71,9 @@ Connection.prototype._tryToRespond = function() {
 		} else {
 			callback.call(null, response_handler.args[0]);
 		}
-	} else {
-		response_handler.reset();
 	}
+	
+	return response_handler.complete;
 };
 
 Connection.prototype.send = function() {
@@ -149,6 +150,7 @@ ResponseHandler.prototype.reset = function() {
 	this.args = undefined;
 	this.header = undefined;
 	this.body = undefined;
+	this.consumed_data_length = 0;
 };
 
 ResponseHandler.prototype.CODES_REQUIRING_BODY = {
@@ -156,14 +158,15 @@ ResponseHandler.prototype.CODES_REQUIRING_BODY = {
 };
 
 ResponseHandler.prototype.handle = function(data) {
-	var i = data.indexOf("\r\n");
+	this.reset();
+	
+	var i = data.indexOf('\r\n');
 	
 	if (i < 0) {
 		return; //response is not yet complete
 	}
 
 	this.header = data.substr(0, i);
-	this.body = data.substr(i + 2);
 	this.args = this.header.split(' ');
 	
 	var code = this.args[0];
@@ -175,27 +178,38 @@ ResponseHandler.prototype.handle = function(data) {
 	}
 	
 	if ((this.CODES_REQUIRING_BODY[code])) {
-		this.parseBody();
+		this.complete = this.parseBody(data.substr(i + 2)) ? true: false;
 	} else {
 		this.complete = true;
 	}
+	
+	if (this.complete) {
+		this.consumed_data_length = this.header.length + 2;
+		
+		if (this.body) {
+			this.consumed_data_length += this.body.length + 2;
+		}
+	}
 };
 
-ResponseHandler.prototype.parseBody = function() {
-	if (! hasValue(this.body)) {
+ResponseHandler.prototype.parseBody = function(data) {
+	if (! hasValue(data)) {
 		return;
 	}
 	
 	var last_arg = this.args[this.args.length - 1];
 
 	var expected_bodylength_inbytes = parseInt(last_arg, 10);
-	var received_bodylength_inbytes = Buffer.byteLength(this.body, 'utf8') - 2  //-2 for \r\n delimiter
+	var available_data_inbytes = Buffer.byteLength(data, 'utf8')
 	
-	if (received_bodylength_inbytes === expected_bodylength_inbytes) { 
+	if (available_data_inbytes >= (expected_bodylength_inbytes + 2)) {
+		this.body = (new Buffer(data)).toString('utf8', 0, expected_bodylength_inbytes);
+
 		//response args : remove the length and add the data 
 		this.args.pop();
-		this.args.push(this.body.substr(0, this.body.length - 2));
-		this.complete = true;
+		this.args.push(this.body);
+		
+		return true;
 	}
 };
 
