@@ -24,14 +24,14 @@ var Client = module.exports = {
 		var stream = net.createConnection(port, host);
 		
 		stream.on('connect', function() {
+			//successfully connected. remove the error listener.
+			stream.removeAllListeners('error');
+			
 			return callback(null, new Connection(stream));
 		});
 		
 		stream.on('error', function(err) {
 			return callback(err);
-		});
-		
-		return stream.on('close', function(has_error) {
 		});
 	}
 };
@@ -46,10 +46,26 @@ function Connection(stream) {
 	this.handlers = [];
 	
 	var self = this;
+	
 	self.stream.on('data', function(data) {
 		self.data += data;
 		
 		while(self.data.length && self._tryToRespond());
+	});
+	
+	//register error listeners on stream
+	self.stream.on('error', function(err) {
+		self._last_error = err;
+	});
+	self.stream.on('close', function(had_error) {
+		var err = had_error ? self._last_error : new Error('connection closed');
+		
+		//relay the error to all pending callback's inside handlers
+		self.handlers.forEach(function(handler) {
+			handler[1](err);
+		});
+		
+		self.handlers = [];
 	});
 };
 
@@ -110,9 +126,13 @@ Connection.prototype.stats = makeCommandMethod('stats', 'OK');
 function makeCommandMethod(command_name, expected_response, sends_data) {
 	return function() {
 		var args = Array.prototype.slice.call(arguments);
-		var callback = args.pop();
-		
 		args.unshift(command_name);
+
+		var callback = args.pop();
+
+		//add a response handler for this command 
+		var handler = [new Response(expected_response), callback];
+		this.handlers.push(handler);
 		
 		if (sends_data) {
 			//first send header with length of data in bytes. then send data.
@@ -123,10 +143,6 @@ function makeCommandMethod(command_name, expected_response, sends_data) {
 		} else {
 			this.send(args);
 		}
-		
-		var handler = [new Response(expected_response), callback];
-		
-		return this.handlers.push(handler);
 	};
 };
 
