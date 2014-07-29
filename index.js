@@ -77,7 +77,8 @@ Connection.prototype._tryToRespond = function() {
 
 Connection.prototype.send = function() {
 	var args = slice.call(arguments);
-	this.stream.write(args.join(' ') + "\r\n");
+	var packet = args.join(' ') + '\r\n';
+	this.stream.write(packet);
 };
 
 Connection.prototype.end = function() {
@@ -118,7 +119,7 @@ function makeCommandMethod(command_name, expected_response, sends_data) {
 		
 		if (sends_data) {
 			data = args.pop();
-			args.push(data.length);
+			args.push(Buffer.byteLength(data, 'utf8'));
 		}
 		
 		this.send.apply(this, args);
@@ -186,12 +187,13 @@ ResponseHandler.prototype.parseBody = function() {
 	}
 	
 	var last_arg = this.args[this.args.length - 1];
+
+	var expected_bodylength_inbytes = parseInt(last_arg, 10);
+	var received_bodylength_inbytes = Buffer.byteLength(this.body, 'utf8') - 2  //-2 for \r\n delimiter
 	
-	var	body_length = parseInt(last_arg, 10);
-		
-	if (this.body.length === (body_length + 2)) {
+	if (received_bodylength_inbytes === expected_bodylength_inbytes) { 
+		//response args : remove the length and add the data 
 		this.args.pop();
-		//removed the length and add the data
 		this.args.push(this.body.substr(0, this.body.length - 2));
 		this.complete = true;
 	}
