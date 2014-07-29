@@ -2,7 +2,7 @@
 var net = require('net');
 
 
-var Client = {
+var Client = module.exports = {
 	DEFAULT_ADDR : '127.0.0.1',
 	DEFAULT_PORT : 11300,
 	LOWEST_PRIORITY : 4294967295,
@@ -205,8 +205,4 @@ Response.prototype.parseBody = function(data) {
 };
 
 
-/**
- * exports
- */
-exports.Client = Client;
 

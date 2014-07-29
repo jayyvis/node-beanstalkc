@@ -1,6 +1,6 @@
 var assert = require('assert');
+var beanstalkc = require('../index');
 
-var client = require('../index').Client;
 var connection;
 
 var job_data = {
@@ -12,7 +12,7 @@ locals = {};
 
 describe('beanstalkc:', function() {
 	before('connect()', function(done) {
-		client.connect('127.0.0.1:4242', function(err, conn) {
+		beanstalkc.connect('127.0.0.1:4242', function(err, conn) {
 			assert(!err, 'err:'+err);
 			assert(conn);
 			connection = conn;
