@@ -2,7 +2,7 @@ beanstalkc
 ==========
 [node-beanstalk-client](https://github.com/benlund/node-beanstalk-client) was a nice beanstalkd client for node.js but left unmaintained with bugs. Further it was written in coffee script, effectively limiting the contributions.
 
-I took the coffee generated js, refactored into a readable code, added utf8 support and fixed critical bugs.
+I took the coffee generated js, refactored into a readable code, added utf8 support, unit tests and fixed critical bugs.
 
 ###Installation
 
