@@ -1,12 +1,8 @@
-Easy to use beanstalkd client library for node.js
-=================================================
+beanstalkc
+==========
+[node-beanstalk-client](https://github.com/benlund/node-beanstalk-client) was a nice beanstalkd client for node.js but left unmaintained with bugs. Further it was written in coffee script, effectively limiting the contributions.
 
-[node-beanstalk-client](https://github.com/benlund/node-beanstalk-client) was a nice beanstalkd client but was written in coffescript and left unmaintained with bugs.
-
-I was using this library for quite sometime and turned it as beanstalkc,
-	- simple api to use
-	- actively maintained
-	- and its javascript
+I took the coffee generated js, refactored into a readable code, added utf8 support and fixed critical bugs.
 
 ###Installation
 
