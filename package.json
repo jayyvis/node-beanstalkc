@@ -1,0 +1,13 @@
+{ 
+  "name": "beanstalkc",
+  "version": "0.0.1",
+  "description": "Easy to use beanstalkd client library for node.js",
+  "author": "Jayy Vis <jayyvis@gmail.com>",
+  "dependencies": {},  
+  "repository": {
+    "type" : "git",
+    "url" : "http://github.com/jayyvis/beanstalkc.git"
+  },
+  "license": "MIT"  
+}
+
