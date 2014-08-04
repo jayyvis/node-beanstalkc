@@ -1,6 +1,6 @@
 { 
   "name": "beanstalkc",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Easy to use beanstalkd client library for node.js",
   "author": "Jayy Vis <jayyvis@gmail.com>",
   "dependencies": {},  
