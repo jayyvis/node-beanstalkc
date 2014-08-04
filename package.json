@@ -6,7 +6,7 @@
   "dependencies": {},  
   "repository": {
     "type" : "git",
-    "url" : "http://github.com/jayyvis/beanstalkc.git"
+    "url" : "http://github.com/jayyvis/node-beanstalkc.git"
   },
   "license": "MIT"  
 }
