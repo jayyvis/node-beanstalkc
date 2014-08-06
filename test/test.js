@@ -55,7 +55,7 @@ describe('beanstalkc:', function() {
 	
 	describe('utf8 jobs:', function() {
 		it('puts utf8 string', function(done) {
-			connection.put(0, 0, 1, 'latin À', function(err, job_id) {
+			connection.put(0, 0, 1, 'latin Ã€', function(err, job_id) {
 				assert(!err, 'err:'+err);
 				assert(job_id);
 				done();
@@ -66,7 +66,7 @@ describe('beanstalkc:', function() {
 			connection.reserve(function(err, job_id, job_string) {
 				assert(!err, 'err:'+err);
 				assert(job_id);
-				assert.equal(job_string, 'latin À');
+				assert.equal(job_string, 'latin Ã€');
 				
 				connection.destroy(job_id, function(err) {
 					assert(!err, 'err:'+err);
